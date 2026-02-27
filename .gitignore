@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.next/
+node_modules/
+chroma_db/
+uploads/
+*.log
