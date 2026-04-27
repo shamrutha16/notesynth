@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Job, getOutput, getTranscript, GeneratedOutput, formatTimestamp } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { GeneratedOutput, Job, getOutput, getTranscript } from "@/lib/api";
 import FlashcardsView from "./FlashcardsView";
+import Icon from "./Icon";
 import MCQsView from "./MCQsView";
 import NotesView from "./NotesView";
-import SummaryView from "./SummaryView";
 import QAView from "./QAView";
+import SummaryView from "./SummaryView";
 
 interface Props {
   job: Job;
@@ -14,320 +15,231 @@ interface Props {
 }
 
 const TABS = [
-  { key: "notes", label: "📝 Notes", color: "var(--accent-electric)" },
-  { key: "summary", label: "📋 Summary", color: "var(--accent-teal)" },
-  { key: "flashcards", label: "🃏 Flashcards", color: "var(--accent-amber)" },
-  { key: "mcqs", label: "✏️ MCQs", color: "var(--accent-rose)" },
-  { key: "qa", label: "💬 Q&A", color: "#a78bfa" },
+  { key: "notes", label: "Notes", accent: "var(--yellow)", icon: "notes" as const },
+  { key: "summary", label: "Summary", accent: "var(--mint)", icon: "spark" as const },
+  { key: "flashcards", label: "Flashcards", accent: "var(--cyan)", icon: "cards" as const },
+  { key: "mcqs", label: "MCQs", accent: "var(--pink)", icon: "quiz" as const },
+  { key: "qa", label: "Q&A", accent: "var(--orange)", icon: "chat" as const },
 ] as const;
 
-type TabKey = typeof TABS[number]["key"];
+type TabKey = (typeof TABS)[number]["key"];
+
+type TranscriptSegment = {
+  id: string;
+  start: number;
+  end: number;
+  text: string;
+};
 
 export default function ResultsDashboard({ job, onReset }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("notes");
   const [outputs, setOutputs] = useState<Record<string, GeneratedOutput | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [transcript, setTranscript] = useState<any>(null);
+  const [transcript, setTranscript] = useState<{ segments: TranscriptSegment[] } | null>(null);
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
 
-  // Load outputs
   useEffect(() => {
-    TABS.forEach(tab => {
-      fetchOutput(tab.key);
+    TABS.forEach((tab) => {
+      void fetchOutput(tab.key);
     });
-    fetchTranscript();
+    void fetchTranscript();
   }, [job.job_id]);
 
   const fetchOutput = async (type: string) => {
     if (outputs[type] !== undefined) return;
-    setLoading(prev => ({ ...prev, [type]: true }));
+    setLoading((prev) => ({ ...prev, [type]: true }));
     try {
       const data = await getOutput(job.job_id, type);
-      setOutputs(prev => ({ ...prev, [type]: data }));
-    } catch (e) {
-      setOutputs(prev => ({ ...prev, [type]: null }));
+      setOutputs((prev) => ({ ...prev, [type]: data }));
+    } catch {
+      setOutputs((prev) => ({ ...prev, [type]: null }));
     } finally {
-      setLoading(prev => ({ ...prev, [type]: false }));
+      setLoading((prev) => ({ ...prev, [type]: false }));
     }
   };
 
   const fetchTranscript = async () => {
     try {
-      const t = await getTranscript(job.job_id);
-      setTranscript(t);
-    } catch {}
+      const data = await getTranscript(job.job_id);
+      setTranscript(data);
+    } catch {
+      setTranscript(null);
+    }
   };
 
   const currentOutput = outputs[activeTab];
   const isLoading = loading[activeTab];
 
-  const tabColor = TABS.find(t => t.key === activeTab)?.color || "var(--accent-electric)";
+  const counts = useMemo(
+    () => ({
+      notes: outputs.notes?.notes?.length ?? 0,
+      summary: outputs.summary?.summary ? 1 : 0,
+      flashcards: outputs.flashcards?.flashcards?.length ?? 0,
+      mcqs: outputs.mcqs?.mcqs?.length ?? 0,
+      qa: outputs.qa?.qa_pairs?.length ?? 0,
+    }),
+    [outputs],
+  );
 
-  const formatDuration = (s?: number) => {
-    if (!s) return "--";
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}m ${sec}s`;
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return "--";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}m ${secs}s`;
   };
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2rem" }}>
-      {/* Job summary header */}
-      <div
-        className="glass-card fade-up"
-        style={{
-          padding: "1.25rem 1.5rem",
-          marginBottom: "1.5rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "1rem",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: "12px",
-              background: "rgba(0, 212, 170, 0.1)",
-              border: "1px solid rgba(0, 212, 170, 0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.25rem",
-            }}
-          >
-            🎓
+    <section className="results-layout">
+      <aside className="results-summary">
+        <div className="workspace-card" style={{ background: "rgba(248, 230, 111, 0.22)" }}>
+          <div className="section-kicker">You learn</div>
+          <h2 className="section-title" style={{ fontSize: "clamp(1.8rem, 4vw, 3rem)", maxWidth: "7ch", lineHeight: 0.98 }}>
+            Everything in one study deck.
+          </h2>
+          <p className="section-description" style={{ fontSize: "1rem" }}>
+            Your lecture is processed. The tabs on the right are still powered by the same output endpoints you already had.
+          </p>
+          <div className="hero-actions" style={{ marginTop: 24 }}>
+            <button className="ghost-button" onClick={onReset}>
+              <Icon name="refresh" size={18} />
+              New lecture
+            </button>
           </div>
-          <div>
-            <h2
-              style={{
-                fontFamily: "var(--font-display)",
-                fontWeight: 700,
-                fontSize: "1rem",
-                color: "var(--text-primary)",
+        </div>
+
+        <div className="metric-card" style={{ background: "var(--panel)" }}>
+          <h3 style={{ fontSize: "2rem" }}>{job.filename}</h3>
+          <p style={{ textTransform: "none", letterSpacing: 0, fontSize: "1rem", color: "var(--ink-soft)" }}>
+            {job.chunk_count ?? "--"} chunks · {formatDuration(job.duration_seconds)}
+          </p>
+        </div>
+
+        <div className="mini-stat-grid">
+          <div className="metric-card" style={{ background: "var(--cyan)" }}>
+            <h3 style={{ fontSize: "2rem" }}>{counts.flashcards}</h3>
+            <p>Flashcards</p>
+          </div>
+          <div className="metric-card" style={{ background: "var(--pink)" }}>
+            <h3 style={{ fontSize: "2rem" }}>{counts.mcqs}</h3>
+            <p>MCQs</p>
+          </div>
+          <div className="metric-card" style={{ background: "var(--yellow)" }}>
+            <h3 style={{ fontSize: "2rem" }}>{counts.notes}</h3>
+            <p>Notes</p>
+          </div>
+          <div className="metric-card" style={{ background: "var(--mint)" }}>
+            <h3 style={{ fontSize: "2rem" }}>{counts.qa}</h3>
+            <p>Q&A</p>
+          </div>
+        </div>
+
+        {transcript?.segments?.length ? (
+          <div className="transcript-card">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <h4>Transcript</h4>
+                <p style={{ marginTop: 8, color: "var(--ink-soft)" }}>{transcript.segments.length} timestamped segments</p>
+              </div>
+              <button className="chip-button" onClick={() => setTranscriptOpen((value) => !value)}>
+                {transcriptOpen ? "Hide" : "Show"}
+              </button>
+            </div>
+            {transcriptOpen && (
+              <div style={{ display: "grid", gap: 12, marginTop: 18, maxHeight: 320, overflow: "auto" }}>
+                {transcript.segments.map((segment) => (
+                  <div key={segment.id} className="transcript-row">
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <span className="timestamp-badge">{formatSeconds(segment.start)}</span>
+                      <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>{segment.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </aside>
+
+      <div className="result-panel">
+        <div className="results-tab-row" style={{ marginBottom: 18 }}>
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`chip-button ${activeTab === tab.key ? "active" : ""}`}
+              style={{ background: activeTab === tab.key ? tab.accent : "var(--panel)" }}
+              onClick={() => {
+                setActiveTab(tab.key);
+                void fetchOutput(tab.key);
               }}
             >
-              {job.filename}
-            </h2>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>
-              {job.chunk_count && `${job.chunk_count} chunks`}
-              {job.duration_seconds && ` · ${formatDuration(job.duration_seconds)}`}
-              {transcript?.segments && ` · ${transcript.segments.length} segments`}
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div
-            style={{
-              padding: "6px 14px",
-              borderRadius: "100px",
-              background: "rgba(0, 212, 170, 0.1)",
-              border: "1px solid rgba(0, 212, 170, 0.25)",
-              color: "var(--accent-teal)",
-              fontSize: "0.78rem",
-              fontFamily: "var(--font-display)",
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
-            <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--accent-teal)",
-              }}
-            />
-            Completed
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div
-        style={{
-          display: "flex",
-          gap: "8px",
-          marginBottom: "1.5rem",
-          overflowX: "auto",
-          paddingBottom: "4px",
-        }}
-      >
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => { setActiveTab(tab.key); fetchOutput(tab.key); }}
-            style={{
-              padding: "10px 20px",
-              borderRadius: "10px",
-              fontFamily: "var(--font-display)",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              border: activeTab === tab.key ? `1px solid ${tab.color}` : "1px solid var(--border-subtle)",
-              background: activeTab === tab.key
-                ? `${tab.color}1a`
-                : "var(--bg-elevated)",
-              color: activeTab === tab.key ? tab.color : "var(--text-secondary)",
-              boxShadow: activeTab === tab.key ? `0 4px 20px ${tab.color}30` : "none",
-              transition: "all 0.2s ease",
-            }}
-          >
-            {tab.label}
-            {outputs[tab.key] && (
+              <Icon name={tab.icon} size={16} />
+              {tab.label}
               <span
                 style={{
-                  marginLeft: "8px",
-                  padding: "2px 7px",
-                  borderRadius: "100px",
-                  background: activeTab === tab.key ? `${tab.color}30` : "var(--bg-card)",
-                  fontSize: "0.72rem",
-                  fontWeight: 700,
+                  display: "inline-grid",
+                  placeItems: "center",
+                  minWidth: 28,
+                  height: 28,
+                  padding: "0 8px",
+                  borderRadius: 999,
+                  border: "2px solid var(--line)",
+                  background: "rgba(255,255,255,0.75)",
                 }}
               >
-                {getCount(outputs[tab.key], tab.key)}
+                {counts[tab.key]}
               </span>
-            )}
-          </button>
-        ))}
-      </div>
+            </button>
+          ))}
+        </div>
 
-      {/* Content area */}
-      <div
-        className="glass-card"
-        style={{ padding: "2rem", minHeight: "500px" }}
-      >
         {isLoading ? (
-          <LoadingSkeleton />
+          <LoadingState />
         ) : currentOutput ? (
-          <div key={activeTab}>
-            {activeTab === "notes" && currentOutput.notes && (
-              <NotesView notes={currentOutput.notes} />
-            )}
+          <>
+            {activeTab === "notes" && currentOutput.notes && <NotesView notes={currentOutput.notes} />}
             {activeTab === "summary" && currentOutput.summary && (
               <SummaryView summary={currentOutput.summary} timestamps={currentOutput.summary_timestamps} />
             )}
-            {activeTab === "flashcards" && currentOutput.flashcards && (
-              <FlashcardsView flashcards={currentOutput.flashcards} />
-            )}
-            {activeTab === "mcqs" && currentOutput.mcqs && (
-              <MCQsView mcqs={currentOutput.mcqs} />
-            )}
-            {activeTab === "qa" && currentOutput.qa_pairs && (
-              <QAView pairs={currentOutput.qa_pairs} />
-            )}
-          </div>
+            {activeTab === "flashcards" && currentOutput.flashcards && <FlashcardsView flashcards={currentOutput.flashcards} />}
+            {activeTab === "mcqs" && currentOutput.mcqs && <MCQsView mcqs={currentOutput.mcqs} />}
+            {activeTab === "qa" && currentOutput.qa_pairs && <QAView pairs={currentOutput.qa_pairs} />}
+          </>
         ) : (
           <EmptyState type={activeTab} />
         )}
       </div>
-
-      {/* Transcript panel (collapsible) */}
-      {transcript?.segments && (
-        <TranscriptPanel segments={transcript.segments} />
-      )}
-    </div>
+    </section>
   );
 }
 
-function getCount(output: GeneratedOutput | null, type: string): number | string {
-  if (!output) return 0;
-  if (type === "flashcards") return output.flashcards?.length || 0;
-  if (type === "mcqs") return output.mcqs?.length || 0;
-  if (type === "qa") return output.qa_pairs?.length || 0;
-  if (type === "notes") return output.notes?.length || 0;
-  return "✓";
-}
-
-function LoadingSkeleton() {
+function LoadingState() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      {[1, 2, 3].map(i => (
-        <div key={i} className="shimmer" style={{ borderRadius: "10px", height: i === 1 ? 32 : 80 }} />
-      ))}
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="note-card" style={{ minHeight: 88 }} />
+      <div className="note-card" style={{ minHeight: 160 }} />
+      <div className="note-card" style={{ minHeight: 160 }} />
     </div>
   );
 }
 
 function EmptyState({ type }: { type: string }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        height: 300,
-        gap: "12px",
-      }}
-    >
-      <div style={{ fontSize: "2.5rem" }}>🔄</div>
-      <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-display)", fontWeight: 600 }}>
-        {type} not available yet
-      </p>
-      <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-        Try refreshing in a moment
+    <div className="status-card" style={{ minHeight: 360 }}>
+      <div className="status-ring" style={{ width: 90, height: 90, background: "var(--panel-soft)" }}>
+        <Icon name="spark" size={28} />
+      </div>
+      <h3 style={{ fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: "2rem", textTransform: "uppercase" }}>
+        {type} not ready yet
+      </h3>
+      <p style={{ maxWidth: 460, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+        This output did not come back for the current job. Try another upload or refresh the processing flow from the top.
       </p>
     </div>
   );
 }
 
-function TranscriptPanel({ segments }: { segments: any[] }) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div
-      className="glass-card"
-      style={{ marginTop: "1.5rem", overflow: "hidden" }}
-    >
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          width: "100%",
-          padding: "1rem 1.5rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          color: "var(--text-primary)",
-        }}
-      >
-        <span style={{ fontFamily: "var(--font-display)", fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}>
-          📜 Raw Transcript
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 400 }}>
-            {segments.length} segments
-          </span>
-        </span>
-        <span style={{ color: "var(--text-muted)" }}>{expanded ? "▲" : "▼"}</span>
-      </button>
-
-      {expanded && (
-        <div style={{ padding: "0 1.5rem 1.5rem", maxHeight: 400, overflowY: "auto" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {segments.map((seg: any) => (
-              <div key={seg.id} style={{ display: "flex", gap: "12px" }}>
-                <span
-                  className="timestamp-badge"
-                  style={{ flexShrink: 0, alignSelf: "flex-start", marginTop: "2px" }}
-                >
-                  {formatTimestamp(seg.start)}
-                </span>
-                <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem", lineHeight: 1.6 }}>
-                  {seg.text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+function formatSeconds(seconds: number) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }

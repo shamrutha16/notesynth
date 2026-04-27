@@ -6,3 +6,5 @@ node_modules/
 chroma_db/
 uploads/
 *.log
+.env
+.DS_Store

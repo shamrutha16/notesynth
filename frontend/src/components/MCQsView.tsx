@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MCQ, MCQOption, formatTimestamp } from "@/lib/api";
+import { MCQ, formatTimestamp } from "@/lib/api";
 
 interface Props {
   mcqs: MCQ[];
@@ -11,223 +11,121 @@ export default function MCQsView({ mcqs }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [score, setScore] = useState<number | null>(null);
 
-  const handleSelect = (mcqId: string, optionId: string) => {
-    if (answers[mcqId]) return; // Already answered
-    setAnswers(prev => ({ ...prev, [mcqId]: optionId }));
+  const allAnswered = mcqs.every((item) => answers[item.id]);
+
+  const submit = () => {
+    setScore(mcqs.filter((item) => answers[item.id] === item.correct_answer).length);
   };
 
-  const handleSubmit = () => {
-    const correct = mcqs.filter(q => answers[q.id] === q.correct_answer).length;
-    setScore(correct);
-  };
-
-  const handleReset = () => {
+  const reset = () => {
     setAnswers({});
     setScore(null);
   };
 
-  const allAnswered = mcqs.every(q => answers[q.id]);
-  const answeredCount = Object.keys(answers).length;
-
   return (
     <div>
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "2rem",
-          flexWrap: "wrap",
-          gap: "1rem",
-        }}
-      >
+      <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1.3rem", marginBottom: "4px" }}>
-            Multiple Choice Quiz
+          <div className="section-kicker">MCQs</div>
+          <h2 style={{ marginTop: 14, fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: "2.4rem", textTransform: "uppercase" }}>
+            Pop quiz, hot shot.
           </h2>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-            {mcqs.length} questions · {answeredCount} answered
+          <p style={{ marginTop: 10, color: "var(--ink-soft)", fontSize: "1rem" }}>
+            {mcqs.length} auto-generated practice questions with explanations.
           </p>
         </div>
 
-        {score !== null && (
-          <div
-            style={{
-              padding: "12px 20px",
-              borderRadius: "12px",
-              background: score >= mcqs.length * 0.7
-                ? "rgba(0, 212, 170, 0.1)"
-                : "rgba(255, 181, 71, 0.1)",
-              border: `1px solid ${score >= mcqs.length * 0.7 ? "rgba(0, 212, 170, 0.3)" : "rgba(255, 181, 71, 0.3)"}`,
-              textAlign: "center",
-            }}
-          >
-            <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.5rem", color: score >= mcqs.length * 0.7 ? "var(--accent-teal)" : "var(--accent-amber)" }}>
+        {score !== null ? (
+          <div className="metric-card" style={{ background: "var(--pink)", minWidth: 180 }}>
+            <h3 style={{ fontSize: "2rem" }}>
               {score}/{mcqs.length}
-            </p>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>
-              {Math.round((score / mcqs.length) * 100)}%
-            </p>
+            </h3>
+            <p>{Math.round((score / mcqs.length) * 100)}% score</p>
           </div>
-        )}
+        ) : null}
       </div>
 
-      {/* Questions */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-        {mcqs.map((mcq, qi) => {
-          const userAnswer = answers[mcq.id];
-          const isAnswered = !!userAnswer;
-          const isCorrect = userAnswer === mcq.correct_answer;
+      <div className="quiz-stack">
+        {mcqs.map((mcq, index) => {
+          const selected = answers[mcq.id];
+          const answered = Boolean(selected);
 
           return (
-            <div
-              key={mcq.id}
-              style={{
-                padding: "1.5rem",
-                borderRadius: "14px",
-                background: "var(--bg-elevated)",
-                border: isAnswered
-                  ? `1px solid ${isCorrect ? "rgba(0, 212, 170, 0.25)" : "rgba(255, 107, 138, 0.25)"}`
-                  : "1px solid var(--border-subtle)",
-              }}
-            >
-              <div style={{ display: "flex", gap: "12px", marginBottom: "1rem" }}>
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: "8px",
-                    background: isAnswered
-                      ? isCorrect ? "rgba(0, 212, 170, 0.15)" : "rgba(255, 107, 138, 0.15)"
-                      : "var(--bg-card)",
-                    border: `1px solid ${isAnswered ? isCorrect ? "rgba(0, 212, 170, 0.3)" : "rgba(255, 107, 138, 0.3)" : "var(--border-medium)"}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 700,
-                    fontSize: "0.8rem",
-                    color: isAnswered ? isCorrect ? "var(--accent-teal)" : "var(--accent-rose)" : "var(--text-muted)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {qi + 1}
+            <article key={mcq.id} className="quiz-card" style={{ background: answered ? "rgba(245, 139, 192, 0.12)" : "rgba(255,255,255,0.8)" }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <div className="chip-button" style={{ cursor: "default", background: "var(--yellow)" }}>
+                  {String(index + 1).padStart(2, "0")}
                 </div>
-                <p style={{ fontWeight: 600, fontSize: "0.95rem", lineHeight: 1.5, color: "var(--text-primary)" }}>
-                  {mcq.question}
-                </p>
-              </div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: "1.2rem", fontWeight: 800, lineHeight: 1.45 }}>{mcq.question}</h3>
 
-              {/* Options */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingLeft: "40px" }}>
-                {mcq.options.map((opt) => {
-                  const isSelected = userAnswer === opt.id;
-                  const isCorrectOpt = opt.id === mcq.correct_answer;
-                  const showCorrect = isAnswered && isCorrectOpt;
-                  const showIncorrect = isAnswered && isSelected && !isCorrectOpt;
+                  <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+                    {mcq.options.map((option) => {
+                      const isSelected = selected === option.id;
+                      const isCorrect = option.id === mcq.correct_answer;
+                      const background = answered
+                        ? isCorrect
+                          ? "rgba(141, 226, 184, 0.5)"
+                          : isSelected
+                            ? "rgba(255, 211, 211, 0.8)"
+                            : "#fff"
+                        : "#fff";
 
-                  return (
-                    <div
-                      key={opt.id}
-                      className={`mcq-option ${showCorrect ? "correct" : ""} ${showIncorrect ? "incorrect" : ""} ${isAnswered ? "disabled" : ""}`}
-                      onClick={() => handleSelect(mcq.id, opt.id)}
-                    >
-                      <div
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: "6px",
-                          border: `1px solid ${showCorrect ? "var(--accent-teal)" : showIncorrect ? "var(--accent-rose)" : isSelected ? "var(--accent-electric)" : "var(--border-medium)"}`,
-                          background: showCorrect ? "var(--accent-teal)" : showIncorrect ? "var(--accent-rose)" : isSelected ? "var(--accent-electric)" : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontFamily: "var(--font-display)",
-                          fontWeight: 700,
-                          fontSize: "0.75rem",
-                          color: showCorrect || showIncorrect || isSelected ? "white" : "var(--text-muted)",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {showCorrect ? "✓" : showIncorrect ? "✗" : opt.id}
-                      </div>
-                      <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                        {opt.text}
-                      </span>
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className="note-card"
+                          disabled={answered}
+                          onClick={() => setAnswers((prev) => ({ ...prev, [mcq.id]: option.id }))}
+                          style={{
+                            textAlign: "left",
+                            cursor: answered ? "default" : "pointer",
+                            background,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 14,
+                          }}
+                        >
+                          <span className="chip-button" style={{ cursor: "default", background: isSelected ? "var(--yellow)" : "var(--panel)" }}>
+                            {option.id}
+                          </span>
+                          <span style={{ color: "var(--ink-soft)", lineHeight: 1.5 }}>{option.text}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {answered ? (
+                    <div className="summary-card" style={{ marginTop: 16, background: "rgba(255,255,255,0.82)" }}>
+                      <strong>Why this answer works</strong>
+                      <p style={{ marginTop: 10, color: "var(--ink-soft)", lineHeight: 1.6 }}>{mcq.explanation}</p>
+                      {mcq.source_timestamps.length > 0 ? (
+                        <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 10 }}>
+                          {mcq.source_timestamps.map((timestamp, timestampIndex) => (
+                            <span key={timestampIndex} className="timestamp-badge">
+                              {formatTimestamp(timestamp.start)} - {formatTimestamp(timestamp.end)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Explanation */}
-              {isAnswered && (
-                <div
-                  style={{
-                    marginTop: "1rem",
-                    marginLeft: "40px",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    background: isCorrect ? "rgba(0, 212, 170, 0.05)" : "rgba(255, 107, 138, 0.05)",
-                    border: `1px solid ${isCorrect ? "rgba(0, 212, 170, 0.15)" : "rgba(255, 107, 138, 0.15)"}`,
-                  }}
-                >
-                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: "6px" }}>
-                    💡 {mcq.explanation}
-                  </p>
-                  {mcq.source_timestamps.length > 0 && (
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                      {mcq.source_timestamps.map((ts, i) => (
-                        <span key={i} className="timestamp-badge">
-                          🕐 {formatTimestamp(ts.start)}-{formatTimestamp(ts.end)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  ) : null}
                 </div>
-              )}
-            </div>
+              </div>
+            </article>
           );
         })}
       </div>
 
-      {/* Submit / Reset */}
-      <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "2rem" }}>
-        {!score && (
-          <button
-            onClick={handleSubmit}
-            disabled={!allAnswered}
-            style={{
-              padding: "12px 32px",
-              borderRadius: "10px",
-              background: allAnswered ? "var(--accent-rose)" : "var(--bg-elevated)",
-              border: `1px solid ${allAnswered ? "var(--accent-rose)" : "var(--border-medium)"}`,
-              color: allAnswered ? "white" : "var(--text-muted)",
-              fontFamily: "var(--font-display)",
-              fontWeight: 700,
-              cursor: allAnswered ? "pointer" : "not-allowed",
-              fontSize: "0.95rem",
-            }}
-          >
-            {allAnswered ? "Submit Quiz" : `Answer all questions (${answeredCount}/${mcqs.length})`}
+      <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 22, flexWrap: "wrap" }}>
+        {score === null ? (
+          <button className="cta-button" disabled={!allAnswered} onClick={submit} style={{ opacity: allAnswered ? 1 : 0.6 }}>
+            Submit quiz
           </button>
-        )}
-        {score !== null && (
-          <button
-            onClick={handleReset}
-            style={{
-              padding: "12px 32px",
-              borderRadius: "10px",
-              background: "var(--accent-electric)",
-              border: "none",
-              color: "white",
-              fontFamily: "var(--font-display)",
-              fontWeight: 700,
-              cursor: "pointer",
-              fontSize: "0.95rem",
-            }}
-          >
-            🔄 Retake Quiz
+        ) : (
+          <button className="ghost-button" onClick={reset}>
+            Retake quiz
           </button>
         )}
       </div>
