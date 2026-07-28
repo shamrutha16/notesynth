@@ -1,3 +1,4 @@
+import gc
 import logging
 import threading
 from typing import List, Optional
@@ -25,12 +26,18 @@ def process_audio_job(job_id: str, audio_path: str, output_types: Optional[List[
             f"Transcription complete: {len(segments)} segments",
             transcript_available=True, duration_seconds=duration)
 
+        # Free transcription data refs before chunking — model is already unloaded
+        # inside transcribe_audio(), but segments list can still be large
+        gc.collect()
+
         chunks = semantic_chunk_segments(segments)
         save_chunks(job_id, [c.dict() for c in chunks])
         update_job_status(job_id, JobStatus.EMBEDDING, 45,
             f"Created {len(chunks)} chunks, embedding...", chunk_count=len(chunks))
 
         embed_and_store_chunks(job_id, chunks)
+        # Free chunk embeddings from RAM before generation phase
+        gc.collect()
         update_job_status(job_id, JobStatus.GENERATING, 60, "Generating study materials with AI...")
 
         all_chunks_dict = [{"text": c.text, "start_time": c.start_time, "end_time": c.end_time} for c in chunks]

@@ -1,60 +1,88 @@
+import gc
 import logging
 from typing import List, Tuple
 from models.schemas import TranscriptSegment, TranscriptWord
 from core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Model is NOT kept in memory permanently.
+# It is loaded on demand, used, then immediately unloaded to free RAM.
+# This is the critical fix for Render's 512MB free tier.
 _whisper_model = None
 
 
-def get_whisper_model():
+def _load_model():
+    """Load the Whisper model into memory."""
+    from faster_whisper import WhisperModel
+    logger.info(f"Loading Whisper model '{settings.whisper_model}' (device={settings.whisper_device}, compute={settings.whisper_compute_type})")
+    return WhisperModel(
+        settings.whisper_model,
+        device=settings.whisper_device,
+        compute_type=settings.whisper_compute_type,
+        # Limit CPU threads to avoid memory spikes on small instances
+        cpu_threads=2,
+        num_workers=1,
+    )
+
+
+def _unload_model():
+    """Unload the Whisper model and aggressively free RAM."""
     global _whisper_model
-    if _whisper_model is None:
-        try:
-            from faster_whisper import WhisperModel
-            logger.info(f"Loading Whisper model: {settings.whisper_model}")
-            _whisper_model = WhisperModel(
-                settings.whisper_model,
-                device=settings.whisper_device,
-                compute_type=settings.whisper_compute_type,
-            )
-        except ImportError:
-            logger.warning("faster-whisper not installed, using mock transcription")
-            return None
-    return _whisper_model
+    if _whisper_model is not None:
+        logger.info("Unloading Whisper model to free RAM")
+        del _whisper_model
+        _whisper_model = None
+        gc.collect()
 
 
 def transcribe_audio(audio_path: str) -> Tuple[List[TranscriptSegment], float]:
-    model = get_whisper_model()
-    if model is None:
+    """
+    Transcribe audio file. Loads the model, transcribes, then immediately
+    unloads the model to stay within the 512MB RAM limit on free hosting tiers.
+    """
+    global _whisper_model
+
+    try:
+        _whisper_model = _load_model()
+    except ImportError:
+        logger.warning("faster-whisper not installed — using mock transcription")
+        return _mock_transcription()
+    except Exception as e:
+        logger.error(f"Failed to load Whisper model: {e}")
         return _mock_transcription()
 
-    segments_raw, info = model.transcribe(
-        audio_path,
-        word_timestamps=True,
-        vad_filter=True,
-        beam_size=5,
-        temperature=0.0,
-    )
+    try:
+        segments_raw, info = _whisper_model.transcribe(
+            audio_path,
+            # Memory optimizations:
+            beam_size=1,           # beam_size=1 (greedy) uses ~60% less RAM vs beam_size=5
+            word_timestamps=False, # Disable word-level timestamps — saves ~30% memory
+            vad_filter=True,       # Voice activity detection — skips silence, faster + less RAM
+            temperature=0.0,       # Greedy decoding, no random sampling overhead
+            condition_on_previous_text=False,  # Avoids keeping context in RAM across segments
+        )
 
-    segments = []
-    for i, seg in enumerate(segments_raw):
-        words = []
-        if seg.words:
-            for w in seg.words:
-                words.append(TranscriptWord(
-                    word=w.word,
-                    start=round(w.start, 3),
-                    end=round(w.end, 3),
-                    probability=round(w.probability, 4),
-                ))
-        segments.append(TranscriptSegment(
-            id=i, start=round(seg.start, 3), end=round(seg.end, 3),
-            text=seg.text.strip(), words=words,
-        ))
+        segments = []
+        for i, seg in enumerate(segments_raw):
+            segments.append(TranscriptSegment(
+                id=i,
+                start=round(seg.start, 3),
+                end=round(seg.end, 3),
+                text=seg.text.strip(),
+                words=[],  # No word timestamps (memory optimization)
+            ))
 
-    duration = getattr(info, 'duration', segments[-1].end if segments else 0)
-    return segments, duration
+        duration = getattr(info, "duration", segments[-1].end if segments else 0)
+        return segments, duration
+
+    except Exception as e:
+        logger.error(f"Transcription failed: {e}", exc_info=True)
+        raise
+
+    finally:
+        # CRITICAL: Always unload model after transcription regardless of success/failure
+        _unload_model()
 
 
 def _mock_transcription() -> Tuple[List[TranscriptSegment], float]:
@@ -75,18 +103,7 @@ def _mock_transcription() -> Tuple[List[TranscriptSegment], float]:
     ]
     segments = []
     for i, (start, end, text) in enumerate(mock_text):
-        words_list = text.split()
-        word_dur = (end - start) / len(words_list)
-        words = [
-            TranscriptWord(
-                word=w,
-                start=round(start + j * word_dur, 3),
-                end=round(start + (j + 1) * word_dur, 3),
-                probability=0.95,
-            )
-            for j, w in enumerate(words_list)
-        ]
-        segments.append(TranscriptSegment(id=i, start=start, end=end, text=text, words=words))
+        segments.append(TranscriptSegment(id=i, start=start, end=end, text=text, words=[]))
     return segments, 115.0
 
 

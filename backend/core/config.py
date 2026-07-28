@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     llm_model: str = os.getenv("LLM_MODEL", "gpt-4o")
     llm_temperature: float = float(os.getenv("LLM_TEMPERATURE", "0.2"))
     embedding_model: str = "text-embedding-3-small"
-    whisper_model: str = os.getenv("WHISPER_MODEL", "base")
+    whisper_model: str = os.getenv("WHISPER_MODEL", "tiny")
     whisper_device: str = os.getenv("WHISPER_DEVICE", "cpu")
     whisper_compute_type: str = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
     chunk_size: int = int(os.getenv("CHUNK_SIZE", "400"))
