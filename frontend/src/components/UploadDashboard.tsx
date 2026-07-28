@@ -279,33 +279,6 @@ export default function UploadDashboard({ onJobCreated }: Props) {
       </section>
 
       <section id="workspace" className="upload-layout">
-        <div className="workspace-card">
-          <div className="section-kicker">Your workspace</div>
-          <h2 className="section-title" style={{ maxWidth: "11ch" }}>
-            Five tools. One workflow. Zero stress.
-          </h2>
-          <p className="section-description">
-            This is the live part of the product. Everything below is wired to your existing backend flow, so the redesign changes the experience without touching the business logic.
-          </p>
-
-          <div className="bento-grid" style={{ marginTop: 24 }}>
-            {FEATURE_CARDS.map((card) => (
-              <article key={card.title} className={`bento-card ${card.accent} ${card.span}`}>
-                <div className="eyebrow-index">{card.index}</div>
-                <h3>{card.title}</h3>
-                <p>{card.description}</p>
-                <div className="mini-paper">
-                  {card.preview.map((line) => (
-                    <div key={line} style={{ fontWeight: 700, lineHeight: 1.6 }}>
-                      {line}
-                    </div>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-
         <aside className="upload-panel">
           <div className="panel-header" style={{ padding: 0, borderBottom: "none", marginBottom: 18 }}>
             <div>
@@ -454,6 +427,33 @@ export default function UploadDashboard({ onJobCreated }: Props) {
             </div>
           </div>
         </aside>
+
+        <div className="workspace-card">
+          <div className="section-kicker">Your workspace</div>
+          <h2 className="section-title">
+            Five tools. One workflow. Zero stress.
+          </h2>
+          <p className="section-description">
+            This is the live part of the product. Everything below is wired to your existing backend flow, so the redesign changes the experience without touching the business logic.
+          </p>
+
+          <div className="bento-grid">
+            {FEATURE_CARDS.map((card) => (
+              <article key={card.title} className={`bento-card ${card.accent} ${card.span}`}>
+                <div className="eyebrow-index">{card.index}</div>
+                <h3>{card.title}</h3>
+                <p>{card.description}</p>
+                <div className="mini-paper">
+                  {card.preview.map((line) => (
+                    <div key={line} style={{ fontWeight: 700, lineHeight: 1.6 }}>
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="section-block">
@@ -501,7 +501,7 @@ export default function UploadDashboard({ onJobCreated }: Props) {
       <section className="footer-banner hero-card">
         <div>
           <div className="section-kicker">Ready when you are</div>
-          <h2 className="section-title" style={{ maxWidth: "12ch" }}>
+          <h2 className="section-title">
             Stop re-watching. Start understanding.
           </h2>
           <p className="section-description" style={{ maxWidth: 540 }}>

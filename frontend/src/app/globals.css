@@ -83,7 +83,7 @@ button {
 }
 
 .page-shell {
-  width: min(1180px, calc(100vw - 32px));
+  width: min(1200px, calc(100vw - 48px));
   margin: 0 auto;
 }
 
@@ -262,15 +262,16 @@ button {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 40px;
   align-items: center;
-  padding: 40px 0 28px;
+  padding: 48px 0 32px;
 }
 
 .hero-copy {
   position: relative;
-  padding: 28px 4px 24px;
+  padding: 28px 0 24px;
+  min-width: 0;
 }
 
 .hero-kicker,
@@ -299,20 +300,20 @@ button {
 
 .hero-title {
   margin-top: 22px;
-  font-size: clamp(3.6rem, 10vw, 6.2rem);
-  line-height: 0.92;
-  max-width: 11ch;
+  font-size: clamp(1.8rem, 3.4vw, 3rem);
+  line-height: 1.05;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .hero-title .highlight-block {
   display: inline-block;
-  padding: 0.06em 0.2em;
+  padding: 0.06em 0.22em;
   background: var(--orange);
   color: white;
   border: 3px solid var(--line);
   border-radius: 14px;
   box-shadow: 4px 4px 0 0 var(--line);
-  transform: rotate(-1.8deg);
 }
 
 .hero-title .outline-word {
@@ -322,10 +323,10 @@ button {
 
 .hero-description,
 .section-description {
-  max-width: 620px;
+  max-width: 100%;
   margin-top: 24px;
   color: var(--ink-soft);
-  font-size: 1.22rem;
+  font-size: 1.1rem;
   line-height: 1.55;
 }
 
@@ -364,6 +365,7 @@ button {
   position: relative;
   padding: 28px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .tape-strip {
@@ -495,19 +497,19 @@ button {
 }
 
 .section-block {
-  padding: 54px 0 10px;
+  padding: 56px 0 12px;
 }
 
 .section-title {
   margin-top: 18px;
-  font-size: clamp(2.3rem, 5vw, 4.2rem);
-  line-height: 0.96;
-  max-width: 10ch;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.0;
+  max-width: 16ch;
 }
 
 .bento-grid {
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  margin-top: 30px;
+  margin-top: 24px;
 }
 
 .bento-card {
@@ -611,9 +613,10 @@ button {
 
 .footer-banner {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 28px;
   padding: 34px;
   margin: 56px 0 20px;
 }
@@ -660,7 +663,7 @@ button {
 }
 
 .upload-layout {
-  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+  grid-template-columns: 1fr;
 }
 
 .upload-panel {
@@ -781,7 +784,7 @@ button {
 }
 
 .results-layout {
-  grid-template-columns: minmax(320px, 0.72fr) minmax(0, 1.28fr);
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
   align-items: start;
 }
 
@@ -1075,9 +1078,9 @@ button {
   }
 }
 
+
 @media (max-width: 1080px) {
   .hero-grid,
-  .upload-layout,
   .processing-layout,
   .results-layout,
   .footer-grid {
@@ -1090,10 +1093,14 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .bento-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
   .bento-card.span-4,
   .bento-card.span-6,
   .bento-card.span-8 {
-    grid-column: span 6;
+    grid-column: span 3;
   }
 
   .results-summary {
@@ -1103,13 +1110,14 @@ button {
 
 @media (max-width: 760px) {
   .page-shell {
-    width: min(100vw - 20px, 1180px);
+    width: calc(100vw - 24px);
   }
 
   .header-row {
     min-height: 74px;
     padding: 8px 0;
     flex-wrap: wrap;
+    gap: 8px;
   }
 
   .header-actions {
@@ -1118,8 +1126,7 @@ button {
   }
 
   .hero-title {
-    max-width: 100%;
-    font-size: clamp(3rem, 18vw, 4.9rem);
+    font-size: clamp(2rem, 8vw, 3.2rem);
   }
 
   .hero-description,
@@ -1133,7 +1140,7 @@ button {
   .input-grid,
   .mini-stat-grid,
   .preview-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .bento-grid {
