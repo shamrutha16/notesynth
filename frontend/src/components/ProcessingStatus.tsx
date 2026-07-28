@@ -67,8 +67,13 @@ function getStageIndex(status: Job["status"]) {
 export default function ProcessingStatus({ job: initialJob, onComplete, onReset }: Props) {
   const [job, setJob] = useState(initialJob);
   const [dots, setDots] = useState("");
-  const pollRef = useRef<number | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attemptRef = useRef(0);
+  const startTimeRef = useRef(Date.now());
+  const jobIdRef = useRef(job.job_id);
 
+  // Animated dots
   useEffect(() => {
     const timer = window.setInterval(() => {
       setDots((value) => (value.length >= 3 ? "" : `${value}.`));
@@ -76,31 +81,58 @@ export default function ProcessingStatus({ job: initialJob, onComplete, onReset 
     return () => window.clearInterval(timer);
   }, []);
 
+  // Exponential backoff polling
   useEffect(() => {
+    // Don't poll if already in a terminal state
     if (job.status === "completed" || job.status === "failed") return;
 
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const updated = await getJob(job.job_id);
-        setJob(updated);
+    const MAX_WAIT_MS = 10 * 60 * 1000; // 10 minute absolute timeout
+    const BASE_INTERVAL = 3000;         // start at 3s
+    const MAX_INTERVAL = 30000;         // cap at 30s
 
-        if (updated.status === "completed") {
-          if (pollRef.current) clearInterval(pollRef.current);
-          window.setTimeout(() => onComplete(updated), 900);
+    const scheduleNext = (delay: number) => {
+      pollRef.current = setTimeout(async () => {
+        // Absolute timeout guard
+        if (Date.now() - startTimeRef.current > MAX_WAIT_MS) {
+          setTimedOut(true);
+          return;
         }
 
-        if (updated.status === "failed" && pollRef.current) {
-          clearInterval(pollRef.current);
+        try {
+          const updated = await getJob(jobIdRef.current);
+          setJob(updated);
+          attemptRef.current = 0; // reset backoff on a successful response
+
+          if (updated.status === "completed") {
+            window.setTimeout(() => onComplete(updated), 900);
+            return; // stop polling
+          }
+
+          if (updated.status === "failed") {
+            return; // stop polling
+          }
+
+          // Still processing — schedule next poll with same base interval
+          scheduleNext(BASE_INTERVAL);
+        } catch {
+          // Network error — back off exponentially
+          attemptRef.current += 1;
+          const backoff = Math.min(
+            BASE_INTERVAL * Math.pow(2, attemptRef.current),
+            MAX_INTERVAL
+          );
+          scheduleNext(backoff);
         }
-      } catch {
-        // Keep the current UI steady and continue polling on the next interval.
-      }
-    }, 2000);
+      }, delay);
+    };
+
+    scheduleNext(BASE_INTERVAL);
 
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (pollRef.current) clearTimeout(pollRef.current);
     };
-  }, [job.job_id, job.status, onComplete]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run only once on mount
 
   const stage = STAGE_CONFIG[job.status];
   const stageIndex = useMemo(() => getStageIndex(job.status), [job.status]);
@@ -159,6 +191,13 @@ export default function ProcessingStatus({ job: initialJob, onComplete, onReset 
             );
           })}
         </div>
+
+        {timedOut && (
+          <div className="mini-paper" style={{ marginTop: 18, background: "rgba(255,200,100,0.2)", borderColor: "var(--orange)" }}>
+            <strong>Taking longer than expected.</strong> The server may be downloading the Whisper model for the first time (~1 min). The job is still running — check back shortly or{" "}
+            <button className="ghost-button" style={{ display: "inline-flex", marginLeft: 8 }} onClick={onReset}>start over</button>.
+          </div>
+        )}
 
         {job.status === "failed" && (
           <button className="ghost-button" onClick={onReset}>
