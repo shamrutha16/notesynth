@@ -241,6 +241,8 @@ button {
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .chip-button.active {
@@ -675,8 +677,15 @@ button {
 .stage-row,
 .results-tab-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   gap: 12px;
+}
+
+.results-tab-row::-webkit-scrollbar {
+  display: none;
 }
 
 .dropzone {
@@ -784,7 +793,7 @@ button {
 }
 
 .results-layout {
-  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  grid-template-columns: minmax(0, 0.58fr) minmax(0, 1.42fr);
   align-items: start;
 }
 
@@ -808,7 +817,7 @@ button {
 .result-panel {
   min-height: 620px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .notes-stack,
