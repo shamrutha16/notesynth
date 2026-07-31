@@ -660,7 +660,7 @@ button {
 .processing-layout,
 .results-layout {
   display: grid;
-  gap: 24px;
+  gap: 28px;
   padding: 28px 0 24px;
 }
 
@@ -793,7 +793,7 @@ button {
 }
 
 .results-layout {
-  grid-template-columns: minmax(0, 0.58fr) minmax(0, 1.42fr);
+  grid-template-columns: minmax(280px, 0.65fr) minmax(0, 1.35fr);
   align-items: start;
 }
 
@@ -817,7 +817,8 @@ button {
 .result-panel {
   min-height: 620px;
   min-width: 0;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .notes-stack,
