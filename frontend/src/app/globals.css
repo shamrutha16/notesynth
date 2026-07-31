@@ -793,7 +793,8 @@ button {
 }
 
 .results-layout {
-  grid-template-columns: minmax(280px, 0.65fr) minmax(0, 1.35fr);
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
 }
 
@@ -810,15 +811,21 @@ button {
   align-self: start;
 }
 
-.results-summary .metric-card {
+.results-summary .metric-card,
+.results-summary .workspace-card {
   box-shadow: 5px 5px 0 0 var(--line);
+  min-width: 0;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .result-panel {
   min-height: 620px;
   min-width: 0;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .notes-stack,

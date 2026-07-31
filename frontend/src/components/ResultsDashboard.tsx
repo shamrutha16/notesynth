@@ -93,13 +93,13 @@ export default function ResultsDashboard({ job, onReset }: Props) {
       <aside className="results-summary">
         <div className="workspace-card" style={{ background: "rgba(248, 230, 111, 0.22)" }}>
           <div className="section-kicker">You learn</div>
-          <h2 className="section-title" style={{ fontSize: "clamp(1.8rem, 4vw, 3rem)", maxWidth: "7ch", lineHeight: 0.98 }}>
+          <h2 className="section-title" style={{ fontSize: "clamp(1.5rem, 2.5vw, 2.1rem)", lineHeight: 1.1, wordBreak: "break-word", marginTop: 14 }}>
             Everything in one study deck.
           </h2>
-          <p className="section-description" style={{ fontSize: "1rem" }}>
+          <p className="section-description" style={{ fontSize: "0.95rem", marginTop: 12 }}>
             Your lecture is processed. The tabs on the right are still powered by the same output endpoints you already had.
           </p>
-          <div className="hero-actions" style={{ marginTop: 24 }}>
+          <div className="hero-actions" style={{ marginTop: 20 }}>
             <button className="ghost-button" onClick={onReset}>
               <Icon name="refresh" size={18} />
               New lecture
@@ -108,8 +108,8 @@ export default function ResultsDashboard({ job, onReset }: Props) {
         </div>
 
         <div className="metric-card" style={{ background: "var(--panel)" }}>
-          <h3 style={{ fontSize: "2rem" }}>{job.filename}</h3>
-          <p style={{ textTransform: "none", letterSpacing: 0, fontSize: "1rem", color: "var(--ink-soft)" }}>
+          <h3 style={{ fontSize: "clamp(1.1rem, 2vw, 1.4rem)", wordBreak: "break-word", lineHeight: 1.2 }}>{job.filename}</h3>
+          <p style={{ textTransform: "none", letterSpacing: 0, fontSize: "0.9rem", color: "var(--ink-soft)", marginTop: 8 }}>
             {job.chunk_count ?? "--"} chunks · {formatDuration(job.duration_seconds)}
           </p>
         </div>

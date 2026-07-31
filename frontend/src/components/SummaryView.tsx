@@ -14,7 +14,7 @@ export default function SummaryView({ summary, timestamps }: Props) {
     <div>
       <div style={{ marginBottom: 20 }}>
         <div className="section-kicker">Summary</div>
-        <h2 style={{ marginTop: 14, fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: "2.4rem", textTransform: "uppercase" }}>
+        <h2 style={{ marginTop: 12, fontFamily: "Syne, sans-serif", fontWeight: 800, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", textTransform: "uppercase", lineHeight: 1.15 }}>
           TL;DR for your brain
         </h2>
         <p style={{ marginTop: 10, color: "var(--ink-soft)", fontSize: "1rem" }}>
