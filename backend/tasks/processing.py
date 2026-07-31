@@ -46,7 +46,7 @@ def process_audio_job(job_id: str, audio_path: str, output_types: Optional[List[
         available = {}
         total = len(outputs)
         for i, (ot_str, output) in enumerate(outputs.items()):
-            save_output(job_id, ot_str, output)
+            save_output(job_id, ot_str, output.model_dump(mode="json"))
             available[ot_str] = True
             progress = 60 + int((i + 1) / max(total, 1) * 35)
             update_job_status(job_id, JobStatus.GENERATING, progress,
