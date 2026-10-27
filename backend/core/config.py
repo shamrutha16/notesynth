@@ -19,6 +19,19 @@ class Settings(BaseSettings):
     max_file_size_mb: int = int(os.getenv("MAX_FILE_SIZE_MB", "500"))
     retrieval_top_k: int = int(os.getenv("RETRIEVAL_TOP_K", "8"))
     use_hyde: bool = os.getenv("USE_HYDE", "false").lower() == "true"
+    # --- Whole-lecture generation ---
+    anthropic_model: str = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-5")
+    llm_timeout_s: float = float(os.getenv("LLM_TIMEOUT_S", "120"))
+    # Lectures up to this many transcript tokens go to the LLM in one pass;
+    # longer ones are split into time-ordered sections of ~section_tokens each.
+    single_pass_tokens: int = int(os.getenv("SINGLE_PASS_TOKENS", "6000"))
+    section_tokens: int = int(os.getenv("SECTION_TOKENS", "2500"))
+    llm_max_parallel: int = int(os.getenv("LLM_MAX_PARALLEL", "3"))
+    # Second LLM pass that drops flashcards/MCQs/Q&A not supported by their cited chunks
+    verify_outputs: bool = os.getenv("VERIFY_OUTPUTS", "true").lower() == "true"
+    max_flashcards: int = int(os.getenv("MAX_FLASHCARDS", "40"))
+    max_mcqs: int = int(os.getenv("MAX_MCQS", "30"))
+    max_qa: int = int(os.getenv("MAX_QA", "20"))
 
     class Config:
         env_file = ".env"

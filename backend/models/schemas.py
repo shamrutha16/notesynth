@@ -43,6 +43,7 @@ class TranscriptChunk(BaseModel):
     end_time: float
     segment_ids: List[int]
     token_count: int
+    overlap_segments: int = 0  # leading segments repeated from the previous chunk
 
 
 class Flashcard(BaseModel):

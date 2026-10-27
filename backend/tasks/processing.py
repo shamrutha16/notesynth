@@ -40,8 +40,12 @@ def process_audio_job(job_id: str, audio_path: str, output_types: Optional[List[
         gc.collect()
         update_job_status(job_id, JobStatus.GENERATING, 60, "Generating study materials with AI...")
 
-        all_chunks_dict = [{"text": c.text, "start_time": c.start_time, "end_time": c.end_time} for c in chunks]
-        outputs = generate_all_outputs(job_id, output_types, all_chunks_dict)
+        # Whole-lecture generation: every chunk is used (no top-k retrieval), so
+        # long lectures are fully covered. The vector store is kept for Q&A chat.
+        outputs, errors = generate_all_outputs(job_id, output_types, chunks, segments)
+        if not outputs:
+            first_error = next(iter(errors.values()), "unknown error")
+            raise RuntimeError(f"No study materials could be generated: {first_error}")
 
         available = {}
         total = len(outputs)
@@ -52,7 +56,14 @@ def process_audio_job(job_id: str, audio_path: str, output_types: Optional[List[
             update_job_status(job_id, JobStatus.GENERATING, progress,
                 f"Generated {ot_str} ({i+1}/{total})", outputs=available)
 
-        update_job_status(job_id, JobStatus.COMPLETED, 100, "All study materials ready!", outputs=available)
+        if errors:
+            missing = ", ".join(sorted(errors))
+            logger.warning(f"Job {job_id}: missing outputs {errors}")
+            update_job_status(job_id, JobStatus.COMPLETED, 100,
+                f"Study materials ready, but could not generate: {missing}", outputs=available,
+                error="; ".join(f"{k}: {v}" for k, v in errors.items()))
+        else:
+            update_job_status(job_id, JobStatus.COMPLETED, 100, "All study materials ready!", outputs=available)
         logger.info(f"Job {job_id} completed")
 
     except Exception as e:
